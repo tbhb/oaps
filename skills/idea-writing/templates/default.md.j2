@@ -1,0 +1,68 @@
+---
+name: default
+description: General-purpose idea template for miscellaneous concepts
+---
+---
+id: {{ id }}
+title: {{ title }}
+status: seed
+type: general
+created: {{ created }}
+updated: {{ updated }}
+author: {{ author }}
+tags: {{ tags | default([]) }}
+related_ideas: []
+references: []
+workflow: default
+---
+
+<!-- IDEA HEADER START -->
+# {{ title }}
+
+**ID**: {{ id }} | **Status**: seed | **Type**: general
+**Created**: {{ created }} | **Updated**: {{ updated }} | **Author**: {{ author }}
+**Tags**: {{ tags | default([]) | join(', ') }}
+<!-- IDEA HEADER END -->
+
+## Core concept
+
+[The essential idea in 2-3 sentences. What is this about?]
+
+## Context
+
+[Why did this idea emerge? What problem does it address? What triggered it?]
+
+## Questions to explore
+
+- [ ] [Question 1: What needs to be understood first?]
+- [ ] [Question 2: What assumptions need validation?]
+- [ ] [Question 3: What constraints apply?]
+
+## Prior art
+
+[What related work exists? How does this idea compare to existing solutions?]
+
+## Connections
+
+[How does this relate to other ideas? What patterns emerge?]
+
+## Development notes
+
+### {{ created }} - Initial capture
+
+[Notes from the initial idea capture session]
+
+## Open questions
+
+[Unresolved questions that need further thought]
+
+## Next steps
+
+- [ ] [Action 1: First step to explore this idea]
+- [ ] [Action 2: Second step]
+
+<!-- IDEA FOOTER START -->
+---
+**Related ideas**: None yet
+**References**: None yet
+<!-- IDEA FOOTER END -->

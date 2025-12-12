@@ -1,0 +1,17 @@
+{
+  "name": "oaps",
+  "description": "An overengineered agentic project system.",
+  "owner": {
+    "name": "Tony Burns",
+    "email": "tony@tonyburns.net"
+  },
+  "plugins": [
+    {
+      "name": "oaps",
+      "description": "An overengineered agentic project system.",
+      "source": "./",
+      "category": "development",
+      "homepage": "https://github.com/tbhb/oaps"
+    }
+  ]
+}

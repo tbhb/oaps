@@ -1,0 +1,14 @@
+{
+  "name": "oaps",
+  "version": "0.0.0",
+  "description": "An overengineered agentic project system.",
+  "author": {
+    "name": "Tony Burns",
+    "email": "tony@tonyburns.net",
+    "url": "https://github.com/tbhb"
+  },
+  "homepage": "https://github.com/tbhb/oaps",
+  "repository": "https://github.com/tbhb/oaps",
+  "license": "MIT",
+  "keywords": ["development"]
+}

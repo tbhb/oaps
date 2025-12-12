@@ -1,0 +1,22 @@
+{
+  "config": {
+    "fenced-code-language": false,
+    "line-length": false,
+    "reference-links-images": false,
+    "link-image-reference-definitions": false,
+    "first-line-h1": false,
+    "no-emphasis-as-heading": false,
+    "no-duplicate-heading": false,
+    "no-inline-html": false,
+    "code-block-style": false,
+    "link-fragments": false,
+    "list-marker-space": false,
+    "single-h1": false
+  },
+  "customRules": [],
+  "gitignore": true,
+  "noBanner": true,
+  "noInlineConfig": true,
+  "noProgress": true,
+  "showFound": true
+}

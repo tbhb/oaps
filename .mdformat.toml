@@ -1,0 +1,21 @@
+wrap = "keep"
+number = false
+end_of_line = "lf"
+validate = true
+exclude = [
+  "**/.claude/**",
+  "**/.venv/**",
+  "**/node_modules/**",
+  "**/skills/*/templates/**",
+  "**/src/oaps/templates/**",
+  "**/tmp/**",
+  "**/*.j2",
+
+  "**/*.txt",
+  "**/?",
+  "**/??",
+  "**/???",
+  "**/*[!.]??",
+  "**/*[!m]?",
+  "**/*[!d]",
+]

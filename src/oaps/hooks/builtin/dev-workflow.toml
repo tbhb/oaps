@@ -1,0 +1,463 @@
+# =============================================================================
+# /dev Workflow Orchestration Hooks
+# =============================================================================
+#
+# This file defines hook rules that orchestrate the multi-agent /dev workflow.
+# Rules are organized by category:
+#
+# 1. Workflow Initialization - Set up workflow state when command starts
+# 2. Phase Gates - Enforce workflow order and prevent skipping phases
+# 3. Agent Tracking - Track agent completion and aggregate outputs
+# 4. Context Injection - Pass accumulated context between phases
+# 5. User Decision Points - Capture user choices for architecture and review
+# 6. Dynamic Adaptation - Adjust workflow based on task complexity
+# 7. State Preservation - Preserve state across memory compaction
+#
+# =============================================================================
+
+
+# =============================================================================
+# WORKFLOW INITIALIZATION
+# =============================================================================
+
+# Initialize standard workflow on /dev command
+[[rules]]
+id = "dev-workflow-init"
+events = ["user_prompt_submit"]
+priority = "high"
+condition = '''
+  (prompt.as_lower.starts_with("/dev") or prompt.as_lower.starts_with("/oaps:dev")) and
+  not ("--quick" in prompt.as_lower or "--simple" in prompt.as_lower) and
+  not ("--full" in prompt.as_lower or "--thorough" in prompt.as_lower) and
+  not ("--skip-explore" in prompt.as_lower)
+'''
+result = "ok"
+description = "Initialize /dev workflow state"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.workflows:init_dev_workflow" }
+]
+
+# Initialize simple workflow for --quick/--simple flags or simple task keywords
+[[rules]]
+id = "dev-simple-workflow"
+events = ["user_prompt_submit"]
+priority = "high"
+terminal = true
+condition = '''
+  (prompt.as_lower.starts_with("/dev") or prompt.as_lower.starts_with("/oaps:dev")) and
+  (
+    "--quick" in prompt.as_lower or
+    "--simple" in prompt.as_lower or
+    "typo" in prompt.as_lower or
+    "rename" in prompt.as_lower or
+    "minor" in prompt.as_lower
+  )
+'''
+result = "ok"
+description = "Initialize simple workflow for quick tasks"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.workflows:configure_simple_workflow" }
+]
+
+# Initialize complex workflow for --full/--thorough flags or complex task keywords
+[[rules]]
+id = "dev-complex-workflow"
+events = ["user_prompt_submit"]
+priority = "high"
+terminal = true
+condition = '''
+  (prompt.as_lower.starts_with("/dev") or prompt.as_lower.starts_with("/oaps:dev")) and
+  (
+    "--full" in prompt.as_lower or
+    "--thorough" in prompt.as_lower or
+    "refactor" in prompt.as_lower or
+    "redesign" in prompt.as_lower or
+    "architecture" in prompt.as_lower or
+    "security" in prompt.as_lower
+  )
+'''
+result = "ok"
+description = "Initialize complex workflow for thorough tasks"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.workflows:configure_complex_workflow" }
+]
+
+# Skip exploration for --skip-explore flag
+[[rules]]
+id = "dev-skip-exploration"
+events = ["user_prompt_submit"]
+priority = "high"
+terminal = true
+condition = '''
+  (prompt.as_lower.starts_with("/dev") or prompt.as_lower.starts_with("/oaps:dev")) and
+  "--skip-explore" in prompt.as_lower
+'''
+result = "ok"
+description = "Skip exploration phase per user request"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.workflows:skip_exploration_phase" }
+]
+
+
+# =============================================================================
+# PHASE GATES
+# =============================================================================
+
+# Gate: Exploration requires active workflow
+[[rules]]
+id = "gate-exploration"
+events = ["pre_tool_use"]
+priority = "critical"
+condition = '''
+  tool_name == "Task" and
+  (tool_input.subagent_type == "code-explorer" or tool_input.subagent_type == "oaps:code-explorer") and
+  not $session_get("dev.active")
+'''
+result = "block"
+terminal = true
+description = "Exploration requires active /dev workflow"
+actions = [
+  { type = "deny", message = "Cannot run code-explorer outside of /dev workflow. Use /dev to start." }
+]
+
+# Gate: Architecture requires exploration complete
+[[rules]]
+id = "gate-architecture-requires-exploration"
+events = ["pre_tool_use"]
+priority = "critical"
+condition = '''
+  tool_name == "Task" and
+  (tool_input.subagent_type == "code-architect" or tool_input.subagent_type == "oaps:code-architect") and
+  $session_get("dev.active") == true and
+  not $session_get("dev.exploration_complete")
+'''
+result = "block"
+terminal = true
+description = "Architecture requires exploration phase complete"
+actions = [
+  { type = "deny", message = "Cannot start architecture design. Complete codebase exploration first (run code-explorer agents)." }
+]
+
+# Gate: Implementation requires architecture approval
+[[rules]]
+id = "gate-implementation-requires-approval"
+events = ["pre_tool_use"]
+priority = "critical"
+condition = '''
+  tool_name == "Task" and
+  (tool_input.subagent_type == "code-developer" or tool_input.subagent_type == "oaps:code-developer") and
+  $session_get("dev.active") == true and
+  not $session_get("dev.architecture_approved")
+'''
+result = "block"
+terminal = true
+description = "Implementation requires architecture approval"
+actions = [
+  { type = "deny", message = "Cannot start implementation. User must approve architecture first. Use AskUserQuestion to present options and get approval." }
+]
+
+# Gate: Warn if marking complete without review
+[[rules]]
+id = "gate-completion-without-review"
+events = ["pre_tool_use"]
+priority = "high"
+condition = '''
+  tool_name == "TodoWrite" and
+  $session_get("dev.active") == true and
+  $session_get("dev.implementation_complete") == true and
+  not $session_get("dev.review_complete")
+'''
+result = "warn"
+description = "Warn if completing without code review"
+actions = [
+  { type = "warn", message = "Implementation complete but code review has not been run. Consider running code-reviewer agents before finalizing." }
+]
+
+# Gate: Warn on re-implementation after review
+[[rules]]
+id = "gate-reimplementation-after-review"
+events = ["pre_tool_use"]
+priority = "high"
+condition = '''
+  tool_name == "Task" and
+  (tool_input.subagent_type == "code-developer" or tool_input.subagent_type == "oaps:code-developer") and
+  $session_get("dev.active") == true and
+  $session_get("dev.review_complete") == true
+'''
+result = "warn"
+description = "Re-implementation after review"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.workflows:reset_review_state" }
+]
+
+
+# =============================================================================
+# AGENT TRACKING
+# =============================================================================
+
+# Track explorer completion
+[[rules]]
+id = "track-explorer-completion"
+events = ["post_tool_use"]
+priority = "medium"
+condition = '''
+  tool_name == "Task" and
+  (tool_input.subagent_type == "code-explorer" or tool_input.subagent_type == "oaps:code-explorer") and
+  $session_get("dev.active") == true
+'''
+result = "ok"
+description = "Track code-explorer agent completion"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.workflows:track_explorer_completion" }
+]
+
+# Track architect completion
+[[rules]]
+id = "track-architect-completion"
+events = ["post_tool_use"]
+priority = "medium"
+condition = '''
+  tool_name == "Task" and
+  (tool_input.subagent_type == "code-architect" or tool_input.subagent_type == "oaps:code-architect") and
+  $session_get("dev.active") == true
+'''
+result = "ok"
+description = "Track code-architect agent completion"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.workflows:track_architect_completion" }
+]
+
+# Track developer completion
+[[rules]]
+id = "track-developer-completion"
+events = ["post_tool_use"]
+priority = "medium"
+condition = '''
+  tool_name == "Task" and
+  (tool_input.subagent_type == "code-developer" or tool_input.subagent_type == "oaps:code-developer") and
+  $session_get("dev.active") == true
+'''
+result = "ok"
+description = "Track code-developer agent completion"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.workflows:track_developer_completion" }
+]
+
+# Track reviewer completion
+[[rules]]
+id = "track-reviewer-completion"
+events = ["post_tool_use"]
+priority = "medium"
+condition = '''
+  tool_name == "Task" and
+  (tool_input.subagent_type == "code-reviewer" or tool_input.subagent_type == "oaps:code-reviewer") and
+  $session_get("dev.active") == true
+'''
+result = "ok"
+description = "Track code-reviewer agent completion"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.workflows:track_reviewer_completion" }
+]
+
+
+# =============================================================================
+# CONTEXT INJECTION
+# =============================================================================
+
+# Inject exploration findings into architect prompts
+[[rules]]
+id = "inject-exploration-to-architect"
+events = ["pre_tool_use"]
+priority = "medium"
+condition = '''
+  tool_name == "Task" and
+  (tool_input.subagent_type == "code-architect" or tool_input.subagent_type == "oaps:code-architect") and
+  $session_get("dev.active") == true and
+  $session_get("dev.exploration_summary") != null
+'''
+result = "ok"
+description = "Inject exploration findings into architect prompts"
+actions = [
+  { type = "inject", content = "Exploration:\n${session_get('dev.exploration_summary')}" }
+]
+
+# Inject approved architecture into developer prompts
+[[rules]]
+id = "inject-architecture-to-developer"
+events = ["pre_tool_use"]
+priority = "medium"
+condition = '''
+  tool_name == "Task" and
+  (tool_input.subagent_type == "code-developer" or tool_input.subagent_type == "oaps:code-developer") and
+  $session_get("dev.active") == true and
+  $session_get("dev.architecture_approved") == true
+'''
+result = "ok"
+description = "Inject approved architecture into developer prompts"
+actions = [
+  { type = "inject", content = "Approved: ${session_get('dev.chosen_approach')}\n${session_get('dev.chosen_architecture')}" }
+]
+
+# Inject implementation summary into reviewer prompts
+[[rules]]
+id = "inject-implementation-to-reviewer"
+events = ["pre_tool_use"]
+priority = "medium"
+condition = '''
+  tool_name == "Task" and
+  (tool_input.subagent_type == "code-reviewer" or tool_input.subagent_type == "oaps:code-reviewer") and
+  $session_get("dev.active") == true and
+  $session_get("dev.implementation_summary") != null
+'''
+result = "ok"
+description = "Inject implementation summary into reviewer prompts"
+actions = [
+  { type = "inject", content = "Changes: ${session_get('dev.implementation_summary')}\nFiles: ${session_get('dev.modified_files')}" }
+]
+
+
+# =============================================================================
+# USER DECISION POINTS
+# =============================================================================
+
+# Flag awaiting architecture decision
+[[rules]]
+id = "flag-awaiting-architecture"
+events = ["pre_tool_use"]
+priority = "medium"
+condition = '''
+  tool_name == "AskUserQuestion" and
+  $session_get("dev.active") == true and
+  $session_get("dev.architecture_complete") == true and
+  not $session_get("dev.architecture_approved")
+'''
+result = "ok"
+description = "Flag awaiting architecture decision"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.workflows:set_awaiting_architecture_decision" }
+]
+
+# Capture architecture decision
+[[rules]]
+id = "capture-architecture-decision"
+events = ["user_prompt_submit"]
+priority = "high"
+condition = '''
+  $session_get("dev.awaiting_architecture_decision") == true
+'''
+result = "ok"
+description = "Capture user's architecture choice"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.workflows:capture_architecture_decision" }
+]
+
+# Flag awaiting review decision
+[[rules]]
+id = "flag-awaiting-review"
+events = ["pre_tool_use"]
+priority = "medium"
+condition = '''
+  tool_name == "AskUserQuestion" and
+  $session_get("dev.active") == true and
+  $session_get("dev.review_complete") == true
+'''
+result = "ok"
+description = "Flag awaiting review decision"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.workflows:set_awaiting_review_decision" }
+]
+
+# Capture review decision
+[[rules]]
+id = "capture-review-decision"
+events = ["user_prompt_submit"]
+priority = "high"
+condition = '''
+  $session_get("dev.awaiting_review_decision") == true
+'''
+result = "ok"
+description = "Capture user's review decision"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.workflows:capture_review_decision" }
+]
+
+
+# =============================================================================
+# ERROR HANDLING
+# =============================================================================
+
+# Handle agent failure
+[[rules]]
+id = "handle-agent-failure"
+events = ["post_tool_use"]
+priority = "medium"
+condition = '''
+  tool_name == "Task" and
+  $session_get("dev.active") == true and
+  (tool_output.error != null or tool_output.success == false)
+'''
+result = "warn"
+description = "Handle agent execution failure"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.workflows:handle_agent_failure" }
+]
+
+# Allow retry of failed agent
+[[rules]]
+id = "allow-retry-after-failure"
+events = ["pre_tool_use"]
+priority = "high"
+terminal = true
+condition = '''
+  tool_name == "Task" and
+  $session_get("dev.last_agent_failed") == true and
+  tool_input.subagent_type == $session_get("dev.last_failed_agent_type")
+'''
+result = "ok"
+description = "Allow retry of failed agent"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.workflows:clear_failure_state" },
+  { type = "log", level = "info", message = "Retrying failed ${tool_input.subagent_type} agent" }
+]
+
+
+# =============================================================================
+# STATE PRESERVATION
+# =============================================================================
+
+# Preserve workflow state across memory compaction
+[[rules]]
+id = "preserve-dev-workflow-state"
+events = ["pre_compact"]
+priority = "critical"
+condition = '$session_get("dev.active") == true'
+result = "ok"
+description = "Preserve /dev workflow state across compaction"
+actions = [
+  { type = "inject", content = """/dev: ${session_get('dev.workflow_id')} | phase: ${session_get('dev.phase')}
+Feature: ${session_get('dev.feature_description')}
+Explore: ${session_get('dev.exploration_complete') and 'done' or 'pending'} (${session_get('dev.explorer_count')}/${session_get('dev.expected_explorers')})
+Arch: ${session_get('dev.architecture_approved') and 'approved' or 'pending'} | ${session_get('dev.chosen_approach') or 'none'}
+Impl: ${session_get('dev.implementation_complete') and 'done' or 'pending'}
+Review: ${session_get('dev.review_complete') and 'done' or 'pending'} (${session_get('dev.reviewer_count')}/${session_get('dev.expected_reviewers')})""" }
+]
+
+
+# =============================================================================
+# OBSERVABILITY
+# =============================================================================
+
+# Log workflow events for debugging
+[[rules]]
+id = "log-workflow-events"
+events = ["pre_tool_use", "post_tool_use"]
+priority = "low"
+condition = '''
+  $session_get("dev.active") == true and
+  tool_name == "Task"
+'''
+result = "ok"
+description = "Log workflow events for debugging"
+actions = [
+  { type = "log", level = "debug", message = "Workflow ${session_get('dev.workflow_id')} | Phase: ${session_get('dev.phase')} | Tool: ${tool_name} | Agent: ${tool_input.subagent_type}" }
+]

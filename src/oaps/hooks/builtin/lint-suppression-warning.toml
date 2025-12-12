@@ -1,0 +1,123 @@
+# =============================================================================
+# Lint Suppression Warning Hook
+# =============================================================================
+#
+# Warns when pyright: or noqa: comments are added to Python files.
+# Blocks type: ignore in favor of pyright: syntax.
+# Encourages developers to fix issues rather than suppress them.
+#
+# Separate rules for Write and Edit tools since they have different input fields.
+#
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# Block type: ignore (must use pyright: instead)
+# -----------------------------------------------------------------------------
+
+[[rules]]
+id = "block-type-ignore-edit"
+events = ["pre_tool_use"]
+priority = "critical"
+terminal = true
+condition = '''
+  (tool_name == "Edit" or tool_name == "Write" or tool_name == "MultiEdit") and
+  $matches_glob(tool_input.file_path, "*.py") and
+  tool_input.new_string != null and
+  "type: ignore" in tool_input.new_string
+'''
+result = "block"
+description = "Block type: ignore - must use pyright: syntax instead"
+actions = [
+  { type = "deny", message = "Use pyright: ignore[code] not type: ignore. See basedpyright docs. File: ${tool_input.file_path}" },
+]
+
+
+# -----------------------------------------------------------------------------
+# Pyright suppression warnings
+# -----------------------------------------------------------------------------
+
+[[rules]]
+id = "warn-pyright-suppression-edit"
+events = ["pre_tool_use"]
+priority = "high"
+condition = '''
+  (tool_name == "Edit" or tool_name == "Write" or tool_name == "MultiEdit") and
+  $matches_glob(tool_input.file_path, "*.py") and
+  tool_input.new_string != null and
+  "pyright:" in tool_input.new_string
+'''
+result = "warn"
+description = "Pyright suppression detected in Python file (Edit)"
+actions = [{ type = "warn", message = """
+## Lint Suppression Warning
+
+You are adding a **pyright suppression comment** to a Python file.
+
+Before proceeding, critically evaluate:
+
+1. **Can the code be rewritten?** Often type errors indicate a design issue
+   that can be solved with better typing or refactoring.
+
+2. **Is the type annotation wrong?** Sometimes the fix is updating the type
+   hints rather than suppressing the error.
+
+3. **Is this a library limitation?** If a third-party library has incomplete
+   stubs, suppression may be appropriate - but document WHY.
+
+4. **Are you suppressing too broadly?** Use specific codes like
+   `pyright: ignore[reportUnknownMemberType]` instead of blanket ignores.
+
+**If suppression is truly necessary:**
+- Use the most specific suppression possible
+- Add a comment explaining WHY it's needed
+- Consider if this indicates a need for better upstream typing
+
+File: ${tool_input.file_path}
+""" }]
+
+
+# -----------------------------------------------------------------------------
+# Noqa suppression warnings
+# -----------------------------------------------------------------------------
+
+[[rules]]
+id = "warn-noqa-suppression-edit"
+events = ["pre_tool_use"]
+priority = "high"
+condition = '''
+  (tool_name == "Edit" or tool_name == "Write" or tool_name == "MultiEdit") and
+  $matches_glob(tool_input.file_path, "*.py") and
+  tool_input.new_string != null and
+  "noqa:" in tool_input.new_string
+'''
+result = "warn"
+description = "Ruff/flake8 noqa suppression detected in Python file (Edit)"
+actions = [{ type = "warn", message = """
+## Lint Suppression Warning
+
+You are adding a **noqa suppression comment** to a Python file.
+
+Before proceeding, critically evaluate:
+
+1. **Can the code be rewritten?** Most lint rules exist for good reasons.
+   Consider if there's a cleaner way to write the code.
+
+2. **Is the rule appropriate here?** Some rules have legitimate exceptions,
+   but these should be rare.
+
+3. **Is this a one-off or pattern?** If you're suppressing the same rule
+   repeatedly, consider if the rule should be disabled project-wide in
+   pyproject.toml instead.
+
+**Common suppressions that often indicate code smell:**
+- `noqa: E501` - Line too long -> Break up the line or expression
+- `noqa: F401` - Unused import -> Remove it or use `if TYPE_CHECKING:`
+- `noqa: BLE001` - Blind except -> Catch specific exceptions
+
+**If suppression is truly necessary:**
+- Use specific codes like `noqa: E501` instead of bare `noqa`
+- Add a comment explaining WHY it's needed
+
+File: ${tool_input.file_path}
+""" }]

@@ -1,0 +1,305 @@
+# =============================================================================
+# Specification System Hooks
+# =============================================================================
+#
+# This file defines hook rules for the OAPS specification system.
+# Rules are organized by category:
+#
+# 1. Validation Hooks - Validate spec modifications before they occur
+# 2. Synchronization Hooks - Sync metadata after file changes
+# 3. History Tracking Hooks - Record changes to history.jsonl
+# 4. Context Injection Hooks - Inject spec context when working with specs
+#
+# =============================================================================
+
+
+# =============================================================================
+# VALIDATION HOOKS (PreToolUse)
+# =============================================================================
+
+# Validate spec structure before git commit
+[[rules]]
+id = "spec-precommit-validation"
+events = ["pre_tool_use"]
+priority = "high"
+condition = '''
+  tool_name == "Bash" and
+  tool_input.command != null and
+  tool_input.command.starts_with("git commit") and
+  $file_exists(".oaps/docs/specs/index.json")
+'''
+result = "ok"
+description = "Validate spec structure before commits"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.specs:validate_specs_precommit" }
+]
+
+# Validate requirement IDs before writing to requirements.json
+[[rules]]
+id = "spec-requirement-id-validation"
+events = ["pre_tool_use"]
+priority = "medium"
+condition = '''
+  (tool_name == "Write" or tool_name == "Edit") and
+  tool_input.file_path != null and
+  ".oaps/docs/specs/" in tool_input.file_path and
+  tool_input.file_path.ends_with("requirements.json")
+'''
+result = "ok"
+description = "Validate requirement IDs before spec modifications"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.specs:validate_requirement_ids" }
+]
+
+# Validate test IDs before writing to tests.json
+[[rules]]
+id = "spec-test-id-validation"
+events = ["pre_tool_use"]
+priority = "medium"
+condition = '''
+  (tool_name == "Write" or tool_name == "Edit") and
+  tool_input.file_path != null and
+  ".oaps/docs/specs/" in tool_input.file_path and
+  tool_input.file_path.ends_with("tests.json")
+'''
+result = "ok"
+description = "Validate test IDs before spec modifications"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.specs:validate_test_ids" }
+]
+
+
+# =============================================================================
+# SYNCHRONIZATION HOOKS (PostToolUse)
+# =============================================================================
+
+# Sync root index after spec index changes
+[[rules]]
+id = "spec-sync-root-index"
+events = ["post_tool_use"]
+priority = "medium"
+condition = '''
+  (tool_name == "Write" or tool_name == "Edit") and
+  tool_input.file_path != null and
+  ".oaps/docs/specs/" in tool_input.file_path and
+  tool_input.file_path.ends_with("index.json") and
+  not tool_input.file_path.ends_with("specs/index.json")
+'''
+result = "ok"
+description = "Sync root index after per-spec index changes"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.specs:sync_root_index" }
+]
+
+# Sync artifacts.json after artifact file changes
+[[rules]]
+id = "spec-sync-artifacts"
+events = ["post_tool_use"]
+priority = "medium"
+condition = '''
+  (tool_name == "Write" or tool_name == "Edit") and
+  tool_input.file_path != null and
+  ".oaps/docs/specs/" in tool_input.file_path and
+  "/artifacts/" in tool_input.file_path
+'''
+result = "ok"
+description = "Rebuild artifacts.json after artifact changes"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.specs:rebuild_artifacts_index" }
+]
+
+# Validate cross-references after spec changes
+[[rules]]
+id = "spec-crossref-validation"
+events = ["post_tool_use"]
+priority = "low"
+condition = '''
+  (tool_name == "Write" or tool_name == "Edit") and
+  tool_input.file_path != null and
+  ".oaps/docs/specs/" in tool_input.file_path and
+  (tool_input.file_path.ends_with(".json") or tool_input.file_path.ends_with(".md"))
+'''
+result = "ok"
+description = "Validate cross-references after spec changes"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.specs:validate_crossrefs" }
+]
+
+
+# =============================================================================
+# HISTORY TRACKING HOOKS (PostToolUse)
+# =============================================================================
+
+# Record changes to history.jsonl after spec modifications
+[[rules]]
+id = "spec-history-tracking"
+events = ["post_tool_use"]
+priority = "low"
+condition = '''
+  (tool_name == "Write" or tool_name == "Edit") and
+  tool_input.file_path != null and
+  ".oaps/docs/specs/" in tool_input.file_path and
+  (
+    tool_input.file_path.ends_with("requirements.json") or
+    tool_input.file_path.ends_with("tests.json") or
+    tool_input.file_path.ends_with("index.json") or
+    tool_input.file_path.ends_with("index.md")
+  ) and
+  not tool_input.file_path.ends_with("history.jsonl")
+'''
+result = "ok"
+description = "Record changes to history.jsonl"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.specs:record_history" }
+]
+
+
+# =============================================================================
+# TEST SYNCHRONIZATION HOOKS (PostToolUse)
+# =============================================================================
+
+# Sync test results after pytest runs
+[[rules]]
+id = "spec-test-sync"
+events = ["post_tool_use"]
+priority = "low"
+condition = '''
+  tool_name == "Bash" and
+  tool_input.command != null and
+  ("pytest" in tool_input.command or "uv run pytest" in tool_input.command) and
+  $file_exists(".oaps/docs/specs/index.json")
+'''
+result = "ok"
+description = "Update test status after pytest runs"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.specs:sync_test_results" }
+]
+
+
+# =============================================================================
+# CONTEXT INJECTION HOOKS (UserPromptSubmit)
+# =============================================================================
+
+# Suggest spec-writing skill when working in specs directory
+[[rules]]
+id = "spec-skill-suggestion"
+events = ["user_prompt_submit"]
+priority = "low"
+condition = '''
+  (
+    "spec" in prompt.as_lower or
+    "requirement" in prompt.as_lower or
+    "specification" in prompt.as_lower
+  ) and
+  (
+    "create" in prompt.as_lower or
+    "write" in prompt.as_lower or
+    "add" in prompt.as_lower or
+    "update" in prompt.as_lower or
+    "review" in prompt.as_lower
+  )
+'''
+result = "ok"
+description = "Suggest spec-writing skill for spec tasks"
+actions = [
+  { type = "suggest", message = "Consider using the oaps:spec-writing skill (Skill tool) for guidance on spec structure, formatting, requirements, and test cases." }
+]
+
+
+# =============================================================================
+# NOTIFICATION HOOKS (PostToolUse)
+# =============================================================================
+
+# Notify on spec status changes
+[[rules]]
+id = "spec-status-notification"
+events = ["post_tool_use"]
+priority = "low"
+condition = '''
+  (tool_name == "Write" or tool_name == "Edit") and
+  tool_input.file_path != null and
+  ".oaps/docs/specs/" in tool_input.file_path and
+  tool_input.file_path.ends_with("index.json") and
+  not tool_input.file_path.ends_with("specs/index.json")
+'''
+result = "ok"
+description = "Notify on spec status changes"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.specs:notify_status_change" }
+]
+
+
+# =============================================================================
+# COVERAGE SYNCHRONIZATION HOOKS (PostToolUse)
+# =============================================================================
+
+# Coverage sync after coverage runs
+[[rules]]
+id = "spec-coverage-sync"
+events = ["post_tool_use"]
+priority = "low"
+condition = '''
+  tool_name == "Bash" and
+  tool_input.command != null and
+  (
+    ("pytest" in tool_input.command and "--cov" in tool_input.command) or
+    tool_input.command.starts_with("coverage run") or
+    tool_input.command.starts_with("uv run coverage run")
+  ) and
+  $file_exists(".oaps/docs/specs/index.json")
+'''
+result = "ok"
+description = "Update test coverage after coverage runs"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.specs:sync_coverage" }
+]
+
+
+# =============================================================================
+# DIRECTORY SYNCHRONIZATION HOOKS (PostToolUse)
+# =============================================================================
+
+# Root index sync on spec directory creation/deletion via Bash
+[[rules]]
+id = "spec-root-index-sync-bash"
+events = ["post_tool_use"]
+priority = "medium"
+condition = '''
+  tool_name == "Bash" and
+  tool_input.command != null and
+  (
+    tool_input.command.starts_with("mkdir") or
+    tool_input.command.starts_with("rm -r") or
+    tool_input.command.starts_with("rm -rf") or
+    tool_input.command.starts_with("rmdir")
+  ) and
+  ".oaps/docs/specs/" in tool_input.command
+'''
+result = "ok"
+description = "Sync root index after spec directory changes"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.specs:sync_root_index" }
+]
+
+
+# =============================================================================
+# REVIEW NOTIFICATION HOOKS (PostToolUse)
+# =============================================================================
+
+# Review request notification
+[[rules]]
+id = "spec-review-notification"
+events = ["post_tool_use"]
+priority = "low"
+condition = '''
+  (tool_name == "Write" or tool_name == "Edit") and
+  tool_input.file_path != null and
+  ".oaps/docs/specs/" in tool_input.file_path and
+  tool_input.file_path.ends_with("index.json") and
+  not tool_input.file_path.ends_with("specs/index.json")
+'''
+result = "ok"
+description = "Notify when spec is ready for review"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.specs:notify_review_ready" }
+]

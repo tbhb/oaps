@@ -1,0 +1,144 @@
+# =============================================================================
+# Workflow Checkpoint Hooks
+# =============================================================================
+#
+# This file defines hook rules that create automatic checkpoint commits at
+# workflow phase transitions. Checkpoints preserve workflow state in the
+# OAPS repository for traceability and recovery.
+#
+# Rules are organized by workflow:
+#
+# 1. Dev Workflow Checkpoints - Commit at phase transitions
+# 2. Idea Workflow Checkpoints - Commit on document create/update
+#
+# All checkpoint rules run at "low" priority to execute after tracking rules
+# have updated session state.
+#
+# =============================================================================
+
+
+# =============================================================================
+# DEV WORKFLOW CHECKPOINTS
+# =============================================================================
+
+# Checkpoint after exploration phase completes
+[[rules]]
+id = "checkpoint-dev-exploration"
+events = ["post_tool_use"]
+priority = "low"
+condition = '''
+  tool_name == "Task" and
+  (tool_input.subagent_type == "code-explorer" or tool_input.subagent_type == "oaps:code-explorer") and
+  $session_get("dev.active") == true and
+  $session_get("dev.exploration_complete") == true
+'''
+result = "ok"
+description = "Checkpoint after exploration phase completes"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.repo_commit:checkpoint_dev_workflow" }
+]
+
+# Checkpoint after architecture is approved
+[[rules]]
+id = "checkpoint-dev-architecture"
+events = ["user_prompt_submit"]
+priority = "low"
+condition = '''
+  $session_get("dev.active") == true and
+  $session_get("dev.architecture_approved") == true and
+  $session_get("dev.implementation_complete") != true
+'''
+result = "ok"
+description = "Checkpoint after architecture approval"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.repo_commit:checkpoint_dev_workflow" }
+]
+
+# Checkpoint after implementation phase completes
+[[rules]]
+id = "checkpoint-dev-implementation"
+events = ["post_tool_use"]
+priority = "low"
+condition = '''
+  tool_name == "Task" and
+  (tool_input.subagent_type == "code-developer" or tool_input.subagent_type == "oaps:code-developer") and
+  $session_get("dev.active") == true and
+  $session_get("dev.implementation_complete") == true
+'''
+result = "ok"
+description = "Checkpoint after implementation phase completes"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.repo_commit:checkpoint_dev_workflow" }
+]
+
+# Checkpoint after review phase completes
+[[rules]]
+id = "checkpoint-dev-review"
+events = ["post_tool_use"]
+priority = "low"
+condition = '''
+  tool_name == "Task" and
+  (tool_input.subagent_type == "code-reviewer" or tool_input.subagent_type == "oaps:code-reviewer") and
+  $session_get("dev.active") == true and
+  $session_get("dev.review_complete") == true
+'''
+result = "ok"
+description = "Checkpoint after review phase completes"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.repo_commit:checkpoint_dev_workflow" }
+]
+
+
+# =============================================================================
+# IDEA WORKFLOW CHECKPOINTS
+# =============================================================================
+
+# Checkpoint after idea document is created
+[[rules]]
+id = "checkpoint-idea-create"
+events = ["post_tool_use"]
+priority = "low"
+condition = '''
+  $session_get("idea.active") == true and
+  tool_name == "Write" and
+  tool_input.file_path =~ ".*\\.oaps/docs/ideas/.*\\.md$" and
+  $session_get("idea.phase") == "exploring"
+'''
+result = "ok"
+description = "Checkpoint after idea document creation"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.repo_commit:checkpoint_idea_workflow" }
+]
+
+# Checkpoint after idea document is updated (Write)
+[[rules]]
+id = "checkpoint-idea-update-write"
+events = ["post_tool_use"]
+priority = "low"
+condition = '''
+  $session_get("idea.active") == true and
+  tool_name == "Write" and
+  tool_input.file_path =~ ".*\\.oaps/docs/ideas/.*\\.md$" and
+  $session_get("idea.phase") != "seed"
+'''
+result = "ok"
+description = "Checkpoint after idea document update (Write)"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.repo_commit:checkpoint_idea_workflow" }
+]
+
+# Checkpoint after idea document is updated (Edit)
+[[rules]]
+id = "checkpoint-idea-update-edit"
+events = ["post_tool_use"]
+priority = "low"
+condition = '''
+  $session_get("idea.active") == true and
+  tool_name == "Edit" and
+  tool_input.file_path =~ ".*\\.oaps/docs/ideas/.*\\.md$"
+'''
+result = "ok"
+description = "Checkpoint after idea document update (Edit)"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.repo_commit:checkpoint_idea_workflow" }
+]

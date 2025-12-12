@@ -1,0 +1,32 @@
+# =============================================================================
+# Markdown Formatting Hooks
+# =============================================================================
+#
+# Auto-formats markdown files after Edit, Write, or MultiEdit operations
+# using markdownlint-cli2 --fix.
+#
+# Features:
+# - Triggers on post_tool_use after markdown file modifications
+# - Runs markdownlint-cli2 --fix to format in place
+# - Uses fail-open semantics (silent failures, just log)
+# - Low priority to allow other hooks to process first
+#
+# =============================================================================
+
+
+[[rules]]
+id = "markdown-auto-format"
+description = "Auto-format markdown files with markdownlint-cli2 after Edit/Write/MultiEdit"
+events = ["post_tool_use"]
+priority = "low"
+terminal = false
+condition = '''
+  (tool_name == "Edit" or tool_name == "Write" or tool_name == "MultiEdit") and
+  $matches_glob(tool_input.file_path, "*.md")
+'''
+result = "ok"
+
+[[rules.actions]]
+type = "python"
+entrypoint = "oaps.hooks.formatting:auto_format_markdown"
+timeout_ms = 60000

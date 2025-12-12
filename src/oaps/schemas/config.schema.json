@@ -1,0 +1,561 @@
+{
+  "$defs": {
+    "HookRuleActionConfiguration": {
+      "description": "OAPS hook rule action configuration.",
+      "properties": {
+        "type": {
+          "enum": [
+            "log",
+            "python",
+            "shell",
+            "deny",
+            "allow",
+            "warn",
+            "suggest",
+            "inject",
+            "modify",
+            "transform"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "entrypoint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Python entrypoint for the action.",
+          "title": "Entrypoint"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Command to run for the action.",
+          "title": "Command"
+        },
+        "script": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Script content to execute for the action.",
+          "title": "Script"
+        },
+        "message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Message template for permission actions. Supports ${var} syntax.",
+          "title": "Message"
+        },
+        "interrupt": {
+          "default": true,
+          "description": "Whether to interrupt the agent loop on deny.",
+          "title": "Interrupt",
+          "type": "boolean"
+        },
+        "level": {
+          "anyOf": [
+            {
+              "enum": [
+                "debug",
+                "info",
+                "warning",
+                "error"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Log level for log action.",
+          "title": "Level"
+        },
+        "content": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Content to inject for inject action. Supports ${var} syntax.",
+          "title": "Content"
+        },
+        "field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Target field path for modify action.",
+          "title": "Field"
+        },
+        "operation": {
+          "anyOf": [
+            {
+              "enum": [
+                "set",
+                "append",
+                "prepend",
+                "replace"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Operation to perform for modify action.",
+          "title": "Operation"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "New value or content for modify action. Supports ${var} syntax.",
+          "title": "Value"
+        },
+        "pattern": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Regex pattern for replace operation.",
+          "title": "Pattern"
+        },
+        "cwd": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Working directory for the action relative to CLAUDE_PROJECT_DIR.",
+          "title": "Cwd"
+        },
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Environment variables to set for the action.",
+          "title": "Env",
+          "type": "object"
+        },
+        "shell": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Interpreter to use.",
+          "title": "Shell"
+        },
+        "stdin": {
+          "anyOf": [
+            {
+              "enum": [
+                "none",
+                "json"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Type of stdin input to provide to the action.",
+          "title": "Stdin"
+        },
+        "stderr": {
+          "anyOf": [
+            {
+              "enum": [
+                "append_to_stdout",
+                "ignore",
+                "log"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How to handle stderr from the action.",
+          "title": "Stderr"
+        },
+        "stdout": {
+          "anyOf": [
+            {
+              "enum": [
+                "append_stop_reason",
+                "ignore",
+                "log"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How to handle stdout from the action.",
+          "title": "Stdout"
+        },
+        "timeout_ms": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Timeout for the action in milliseconds.",
+          "title": "Timeout Ms"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "HookRuleActionConfiguration",
+      "type": "object"
+    },
+    "HookRuleConfiguration": {
+      "description": "OAPS hook rule configuration.",
+      "properties": {
+        "id": {
+          "description": "Unique identifier for the hook rule.",
+          "title": "Id",
+          "type": "string"
+        },
+        "priority": {
+          "$ref": "#/$defs/RulePriority",
+          "default": "medium",
+          "description": "Priority level for rule evaluation."
+        },
+        "actions": {
+          "description": "List of actions for the hook rule.",
+          "items": {
+            "$ref": "#/$defs/HookRuleActionConfiguration"
+          },
+          "title": "Actions",
+          "type": "array"
+        },
+        "condition": {
+          "description": "Condition to trigger the hook rule.",
+          "title": "Condition",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Description of the hook rule.",
+          "title": "Description"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether the hook rule is enabled.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "events": {
+          "description": "The hook events to which this rule applies.",
+          "items": {
+            "enum": [
+              "all",
+              "pre_tool_use",
+              "post_tool_use",
+              "permission_request",
+              "user_prompt_submit",
+              "notification",
+              "session_start",
+              "session_end",
+              "stop",
+              "subagent_stop",
+              "pre_compact"
+            ],
+            "type": "string"
+          },
+          "title": "Events",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "result": {
+          "description": "Type of action to perform when the hook rule matches.",
+          "enum": [
+            "block",
+            "ok",
+            "warn"
+          ],
+          "title": "Result",
+          "type": "string"
+        },
+        "terminal": {
+          "default": false,
+          "description": "Whether to stop processing further rules if this rule matches.",
+          "title": "Terminal",
+          "type": "boolean"
+        },
+        "source_file": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Path to the file this rule was loaded from (for debugging).",
+          "title": "Source File"
+        }
+      },
+      "required": [
+        "id",
+        "condition",
+        "events",
+        "result"
+      ],
+      "title": "HookRuleConfiguration",
+      "type": "object"
+    },
+    "HooksConfiguration": {
+      "description": "OAPS hooks configuration.\n\nAttributes:\n    log_level: Log level for hook execution logging.\n    log_max_bytes: Maximum size of hooks.log in bytes before rotation.\n    log_backup_count: Number of rotated log files to keep.\n    rules: List of hook rules defining event handlers.",
+      "properties": {
+        "log_level": {
+          "default": "info",
+          "description": "Log level for hook execution logging.",
+          "enum": [
+            "error",
+            "warning",
+            "info",
+            "debug"
+          ],
+          "title": "Log Level",
+          "type": "string"
+        },
+        "log_max_bytes": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum size of hooks.log in bytes before rotation (e.g., 10000000 for 10MB). Must be set together with log_backup_count for rotation to be enabled.",
+          "title": "Log Max Bytes"
+        },
+        "log_backup_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Number of rotated log files to keep (e.g., 5 for hooks.log.1 through hooks.log.5). Must be set together with log_max_bytes for rotation to be enabled.",
+          "title": "Log Backup Count"
+        },
+        "rules": {
+          "description": "List of hook rules.",
+          "items": {
+            "$ref": "#/$defs/HookRuleConfiguration"
+          },
+          "title": "Rules",
+          "type": "array"
+        }
+      },
+      "title": "HooksConfiguration",
+      "type": "object"
+    },
+    "LogFormat": {
+      "description": "Log output format values.",
+      "enum": [
+        "json",
+        "text"
+      ],
+      "title": "LogFormat",
+      "type": "string"
+    },
+    "LogLevel": {
+      "description": "Log level threshold values.\n\nValues are ordered from most verbose (debug) to least verbose (error).",
+      "enum": [
+        "debug",
+        "info",
+        "warning",
+        "error"
+      ],
+      "title": "LogLevel",
+      "type": "string"
+    },
+    "LoggingConfigSchema": {
+      "description": "Pydantic schema for logging configuration section.",
+      "properties": {
+        "level": {
+          "$ref": "#/$defs/LogLevel",
+          "default": "info"
+        },
+        "format": {
+          "$ref": "#/$defs/LogFormat",
+          "default": "json"
+        },
+        "file": {
+          "default": "",
+          "title": "File",
+          "type": "string"
+        }
+      },
+      "title": "LoggingConfigSchema",
+      "type": "object"
+    },
+    "ProjectConfigSchema": {
+      "description": "Pydantic schema for project configuration section.",
+      "properties": {
+        "name": {
+          "default": "",
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "default": "",
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "title": "ProjectConfigSchema",
+      "type": "object"
+    },
+    "RulePriority": {
+      "description": "Priority level for hook rules.\n\nRules are evaluated in priority order: critical first, then high, medium, low.\nWithin the same priority level, rules are evaluated in definition order.",
+      "enum": [
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ],
+      "title": "RulePriority",
+      "type": "string"
+    },
+    "StorageConfiguration": {
+      "description": "OAPS storage configuration.\n\nAttributes:\n    log_level: Log level for state store operation logging.",
+      "properties": {
+        "log_level": {
+          "default": "info",
+          "description": "Log level for state store operation logging.",
+          "enum": [
+            "error",
+            "warning",
+            "info",
+            "debug"
+          ],
+          "title": "Log Level",
+          "type": "string"
+        }
+      },
+      "title": "StorageConfiguration",
+      "type": "object"
+    }
+  },
+  "description": "Pydantic schema for root configuration (lenient mode).",
+  "properties": {
+    "hooks": {
+      "$ref": "#/$defs/HooksConfiguration",
+      "default": {
+        "log_level": "info",
+        "log_max_bytes": null,
+        "log_backup_count": null,
+        "rules": []
+      }
+    },
+    "logging": {
+      "$ref": "#/$defs/LoggingConfigSchema",
+      "default": {
+        "level": "info",
+        "format": "json",
+        "file": ""
+      }
+    },
+    "project": {
+      "$ref": "#/$defs/ProjectConfigSchema",
+      "default": {
+        "name": "",
+        "version": ""
+      }
+    },
+    "storage": {
+      "$ref": "#/$defs/StorageConfiguration",
+      "default": {
+        "log_level": "info"
+      }
+    }
+  },
+  "title": "ConfigSchema",
+  "type": "object"
+}
