@@ -1,0 +1,151 @@
+# =============================================================================
+# CLI Redirect Hooks
+# =============================================================================
+#
+# These rules block ad hoc bash commands and Read tool access that attempt to
+# directly access OAPS internal files (logs, state database), redirecting users
+# to the proper `oaps` CLI equivalents.
+#
+# This ensures:
+# - Consistent access patterns through the official CLI
+# - Proper filtering, formatting, and query capabilities
+# - Protection of internal file structures
+#
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# Block bash commands accessing log files
+# -----------------------------------------------------------------------------
+
+[[rules]]
+id = "redirect-bash-log-access"
+description = "Block bash commands accessing .oaps/logs/ and redirect to oaps logs CLI"
+events = ["pre_tool_use"]
+priority = "critical"
+terminal = true
+condition = '''
+tool_name == "Bash" and (
+  tool_input.command =~~ "\.oaps/logs" or
+  tool_input.command =~~ "\.oaps.*\.log" or
+  tool_input.command =~ "^(cat|head|tail|less|more)\\s+.*\\.log" or
+  tool_input.command =~ "^grep\\s+.*\\.log" or
+  tool_input.command =~ "^find\\s+.*logs.*\\.log"
+)
+'''
+result = "block"
+actions = [
+  { type = "deny", message = "Use oaps logs --help. Blocked: ${tool_input.command}" },
+]
+
+
+# -----------------------------------------------------------------------------
+# Block Read tool access to log files
+# -----------------------------------------------------------------------------
+
+[[rules]]
+id = "redirect-read-log-access"
+description = "Block Read tool access to .oaps/logs/ files and redirect to oaps logs CLI"
+events = ["pre_tool_use"]
+priority = "critical"
+terminal = true
+condition = '''
+tool_name == "Read" and (
+  $matches_glob(tool_input.file_path, "**/.oaps/logs/*") or
+  $matches_glob(tool_input.file_path, "**/.oaps/logs/**/*")
+)
+'''
+result = "block"
+actions = [
+  { type = "deny", message = "Use oaps logs --help. Blocked: ${tool_input.file_path}" },
+]
+
+
+# -----------------------------------------------------------------------------
+# Block bash commands accessing state database
+# -----------------------------------------------------------------------------
+
+[[rules]]
+id = "redirect-bash-state-access"
+description = "Block bash commands accessing .oaps/state.db and redirect to oaps state CLI"
+events = ["pre_tool_use"]
+priority = "critical"
+terminal = true
+condition = '''
+tool_name == "Bash" and (
+  tool_input.command =~~ "state\\.db" or
+  tool_input.command =~~ "sqlite3.*\\.oaps" or
+  tool_input.command =~~ "\\.oaps.*sqlite" or
+  tool_input.command =~ "^sqlite3\\s+.*state" or
+  tool_input.command =~~ "\\.oaps.*\\.db"
+)
+'''
+result = "block"
+actions = [
+  { type = "deny", message = "Use oaps project/session --help. Blocked: ${tool_input.command}" },
+]
+
+
+# -----------------------------------------------------------------------------
+# Block Read tool access to state database
+# -----------------------------------------------------------------------------
+
+[[rules]]
+id = "redirect-read-state-access"
+description = "Block Read tool access to .oaps/state.db and redirect to oaps state CLI"
+events = ["pre_tool_use"]
+priority = "critical"
+terminal = true
+condition = '''
+tool_name == "Read" and (
+  $matches_glob(tool_input.file_path, "**/.oaps/state.db") or
+  $matches_glob(tool_input.file_path, "**/.oaps/*.db")
+)
+'''
+result = "block"
+actions = [
+  { type = "deny", message = "Use oaps project/session --help. Blocked: ${tool_input.file_path}" },
+]
+
+
+# -----------------------------------------------------------------------------
+# Redirect bash find commands to Glob tool
+# -----------------------------------------------------------------------------
+
+[[rules]]
+id = "redirect-bash-find-to-glob"
+description = "Redirect bash find commands to use Glob tool for file pattern matching"
+events = ["pre_tool_use"]
+priority = "high"
+terminal = true
+condition = '''
+tool_name == "Bash" and
+tool_input.command =~ "^find\\s+" and
+not (tool_input.command =~~ "-exec" or tool_input.command =~~ "-delete")
+'''
+result = "block"
+actions = [
+  { type = "deny", message = "Use Glob tool instead. Blocked: ${tool_input.command}" },
+]
+
+
+# -----------------------------------------------------------------------------
+# Redirect bash cat/ls commands to Read/Glob tools
+# -----------------------------------------------------------------------------
+
+[[rules]]
+id = "redirect-bash-cat-ls-to-tools"
+description = "Redirect bash cat commands to Read tool and ls with pipes to Glob tool"
+events = ["pre_tool_use"]
+priority = "high"
+terminal = true
+condition = '''
+tool_name == "Bash" and (
+  (tool_input.command =~ "^cat\\s+" and not tool_input.command =~~ "\\|\\s*wc") or
+  (tool_input.command =~ "^ls\\s+" and tool_input.command =~~ "\\|")
+)
+'''
+result = "block"
+actions = [
+  { type = "deny", message = "Use Read/Glob tools instead. cat|wc allowed. Blocked: ${tool_input.command}" },
+]

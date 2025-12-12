@@ -1,0 +1,16 @@
+name = "oaps-docs"
+compatibility_date = "2025-04-01"
+preview_urls = true
+
+[env.dev]
+name = "oaps-docs-dev"
+
+[env.pr]
+name = "oaps-docs-pr"
+
+[env.latest]
+name = "oaps-docs-latest"
+route = { pattern = "oaps.dev", custom_domain = true }
+[assets]
+directory = "./site"
+not_found_handling = "404-page"

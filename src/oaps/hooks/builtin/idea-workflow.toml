@@ -1,0 +1,207 @@
+# =============================================================================
+# /idea Workflow Orchestration Hooks
+# =============================================================================
+#
+# This file defines hook rules that orchestrate the /idea brainstorming workflow.
+# Rules are organized by category:
+#
+# 1. Workflow Initialization - Set up workflow state when command starts
+# 2. Document Gates - Ensure proper document creation before exploration
+# 3. Document Tracking - Track document creation and updates
+# 4. Document Maintenance - Update headers, footers, and indices
+# 5. Implementation Prevention - Warn about implementation during brainstorming
+# 6. State Preservation - Preserve state across memory compaction
+#
+# =============================================================================
+
+
+# =============================================================================
+# WORKFLOW INITIALIZATION
+# =============================================================================
+
+# Initialize idea workflow on /idea command
+[[rules]]
+id = "idea-workflow-init"
+events = ["user_prompt_submit"]
+priority = "high"
+condition = '''
+  prompt.as_lower.starts_with("/idea") or
+  prompt.as_lower.starts_with("/oaps:idea")
+'''
+result = "ok"
+description = "Initialize /idea workflow state"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.ideas:init_idea_workflow" }
+]
+
+
+# =============================================================================
+# DOCUMENT GATES
+# =============================================================================
+
+# Gate: Warn about exploring without creating a document first
+[[rules]]
+id = "idea-gate-exploration-requires-document"
+events = ["pre_tool_use"]
+priority = "high"
+condition = '''
+  $session_get("idea.active") == true and
+  $session_get("idea.phase") == "seed" and
+  not $session_get("idea.document_created") and
+  tool_name in ["WebSearch", "WebFetch"]
+'''
+result = "warn"
+description = "Warn about exploring without document"
+actions = [
+  { type = "warn", message = "Create the idea document first using `oaps idea create` before exploring." }
+]
+
+
+# =============================================================================
+# DOCUMENT TRACKING
+# =============================================================================
+
+# Track when an idea document is first created
+[[rules]]
+id = "idea-track-document-creation"
+events = ["post_tool_use"]
+priority = "medium"
+condition = '''
+  $session_get("idea.active") == true and
+  tool_name == "Write" and
+  tool_input.file_path =~ ".*\\.oaps/docs/ideas/.*\\.md$" and
+  not $session_get("idea.document_created")
+'''
+result = "ok"
+description = "Track idea document creation"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.ideas:track_document_creation" }
+]
+
+
+# =============================================================================
+# DOCUMENT MAINTENANCE
+# =============================================================================
+
+# Update idea header and footer after any write or edit
+[[rules]]
+id = "idea-update-header-footer"
+events = ["post_tool_use"]
+priority = "medium"
+condition = '''
+  (tool_name == "Write" or tool_name == "Edit") and
+  tool_input.file_path =~ ".*\\.oaps/docs/ideas/.*\\.md$"
+'''
+result = "ok"
+description = "Update idea header/footer after write"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.ideas:update_idea_header_footer" }
+]
+
+# Update ideas index after document changes
+[[rules]]
+id = "idea-update-index"
+events = ["post_tool_use"]
+priority = "low"
+condition = '''
+  (tool_name == "Write" or tool_name == "Edit") and
+  tool_input.file_path =~ ".*\\.oaps/docs/ideas/.*\\.md$"
+'''
+result = "ok"
+description = "Update ideas index after document change"
+actions = [
+  { type = "python", entrypoint = "oaps.hooks.ideas:update_idea_index" }
+]
+
+
+# =============================================================================
+# IMPLEMENTATION PREVENTION
+# =============================================================================
+
+# Warn when attempting to write implementation files during brainstorming
+[[rules]]
+id = "idea-prevent-implementation"
+events = ["pre_tool_use"]
+priority = "high"
+condition = '''
+  $session_get("idea.active") == true and
+  (tool_name == "Edit" or tool_name == "Write") and
+  not (tool_input.file_path =~ ".*\\.oaps/docs/ideas/.*" or tool_input.file_path =~ ".*/ideas/.*")
+'''
+result = "warn"
+description = "Warn about implementation during brainstorming"
+actions = [
+  { type = "warn", message = "This is a brainstorming workflow. Are you sure you want to create implementation files? Use /dev for implementation." }
+]
+
+
+# =============================================================================
+# SEARCH REDIRECTION
+# =============================================================================
+
+# Redirect Glob searches for idea files to use CLI instead
+[[rules]]
+id = "idea-redirect-glob-search"
+events = ["pre_tool_use"]
+priority = "high"
+condition = '''
+  $session_get("idea.active") == true and
+  tool_name == "Glob" and
+  (tool_input.pattern =~ ".*idea.*" or tool_input.pattern =~ ".*\.oaps.*idea.*")
+'''
+result = "warn"
+description = "Redirect Glob searches to use idea CLI"
+actions = [
+  { type = "warn", message = "DO NOT use Glob to search for idea files. Use `oaps idea search <query>` or `oaps idea list` instead, then `oaps idea show <id>` to view the content." }
+]
+
+# Redirect Grep searches for idea content to use CLI instead
+[[rules]]
+id = "idea-redirect-grep-search"
+events = ["pre_tool_use"]
+priority = "high"
+condition = '''
+  $session_get("idea.active") == true and
+  tool_name == "Grep" and
+  (tool_input.path =~ ".*\.oaps.*" or tool_input.pattern =~ ".*idea.*")
+'''
+result = "warn"
+description = "Redirect Grep searches to use idea CLI"
+actions = [
+  { type = "warn", message = "DO NOT use Grep to search idea content. Use `oaps idea search <query>` to find ideas by content, then `oaps idea show <id>` to view the full document." }
+]
+
+# Redirect Bash find commands for idea files
+[[rules]]
+id = "idea-redirect-bash-find"
+events = ["pre_tool_use"]
+priority = "high"
+condition = '''
+  $session_get("idea.active") == true and
+  tool_name == "Bash" and
+  tool_input.command =~ ".*(find|ls).*\.oaps.*(idea|IDEA).*"
+'''
+result = "warn"
+description = "Redirect Bash find/ls to use idea CLI"
+actions = [
+  { type = "warn", message = "DO NOT use shell commands to find idea files. Use `oaps idea list` or `oaps idea search <query>` instead." }
+]
+
+
+# =============================================================================
+# STATE PRESERVATION
+# =============================================================================
+
+# Preserve workflow state across memory compaction
+[[rules]]
+id = "idea-preserve-workflow-state"
+events = ["pre_compact"]
+priority = "critical"
+condition = '$session_get("idea.active") == true'
+result = "ok"
+description = "Preserve /idea workflow state across compaction"
+actions = [
+  { type = "inject", content = """/idea: ${session_get('idea.workflow_id')} | ${session_get('idea.title')}
+Phase: ${session_get('idea.phase')} | Status: ${session_get('idea.status')}
+Doc: ${session_get('idea.idea_path')}""" }
+]

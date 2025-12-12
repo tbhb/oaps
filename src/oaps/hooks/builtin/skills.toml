@@ -1,0 +1,142 @@
+# OAPS Built-in Skill Activation Rules
+#
+# These rules detect when OAPS skills should be activated based on user prompts.
+# Rules use the "suggest" action to recommend skill usage without blocking.
+#
+# Priority levels:
+#   - critical: Required skills (enforcement="block" in legacy JSON)
+#   - high: Recommended skills (enforcement="suggest" with high priority)
+#   - medium: Suggested skills (default)
+#   - low: Optional skills
+
+# =============================================================================
+# OAPS Skill Developer
+# =============================================================================
+
+# [[rules]]
+# id = "skill-developer"
+# description = "Suggest skill developer skill for skill-related work"
+# events = ["user_prompt_submit"]
+# priority = "high"
+# condition = '''
+# prompt =~ "(?i).*(?<![a-zA-Z])skills?(?![a-zA-Z]).*" or prompt =~ "(?i).*(create|write|build|add|develop|make).*skill.*"
+# '''
+# result = "ok"
+# [[rules.actions]]
+# type = "suggest"
+# message = "Use oaps:skill-development skill."
+
+# [[rules.actions]]
+# type = "warn"
+# message = "💡 Skill suggested: oaps:skill-development"
+
+
+# =============================================================================
+# OAPS Agent Developer
+# =============================================================================
+
+# [[rules]]
+# id = "agent-developer"
+# description = "Suggest agent developer skill for agent-related work"
+# events = ["user_prompt_submit"]
+# priority = "high"
+# condition = '''
+# prompt =~ "(?i).*(?<![a-zA-Z])(sub)?agents?(?![a-zA-Z]).*" or prompt =~ "(?i).*(create|write|build|add|develop|make).*agent.*"
+# '''
+# result = "ok"
+# [[rules.actions]]
+# type = "suggest"
+# message = "Use oaps:agent-development skill."
+
+# [[rules.actions]]
+# type = "warn"
+# message = "💡 Skill suggested: oaps:agent-development"
+
+
+# =============================================================================
+# OAPS Slash Command Developer
+# =============================================================================
+
+# [[rules]]
+# id = "command-developer"
+# description = "Suggest command developer skill for slash command work"
+# events = ["user_prompt_submit"]
+# priority = "high"
+# condition = '''
+# prompt =~ "(?i).*(?<![a-zA-Z])(slash[ ]+)?commands?(?![a-zA-Z]).*" or prompt =~ "(?i).*(create|write|build|add|develop|make).*(command|slash).*"
+# '''
+# result = "ok"
+# [[rules.actions]]
+# type = "suggest"
+# message = "Use oaps:command-development skill."
+
+# [[rules.actions]]
+# type = "warn"
+# message = "💡 Skill suggested: oaps:command-development"
+
+
+# =============================================================================
+# Python Practices
+# =============================================================================
+# Critical priority because Python code quality is essential.
+
+# [[rules]]
+# id = "python-practices-prompt"
+# description = "Enforce Python practices skill for Python-related prompts"
+# events = ["user_prompt_submit"]
+# priority = "critical"
+# condition = '''
+# prompt =~ "(?i).*(?<![a-zA-Z])(python|pytest|ruff|basedpyright|type[ ]+hints?|typing)(?![a-zA-Z]).*" or prompt =~ "(?i).*(create|write|implement|add).*python.*|.*test.*coverage.*"
+# '''
+# result = "ok"
+# [[rules.actions]]
+# type = "suggest"
+# message = "Use oaps:python-practices skill."
+
+# [[rules.actions]]
+# type = "warn"
+# message = "💡 Skill suggested: oaps:python-practices"
+
+
+# =============================================================================
+# Spec Writing
+# =============================================================================
+
+# [[rules]]
+# id = "spec-writing-prompt"
+# description = "Suggest spec writing skill for specification-related prompts"
+# events = ["user_prompt_submit"]
+# priority = "high"
+# condition = '''
+# prompt =~ "(?i).*(?<![a-zA-Z])(specs?|specifications?|requirements?|test[ ]+cases?)(?![a-zA-Z]).*" or prompt =~ "(?i).*(create|write|review|update).*spec.*|.*(add|review|update|delete).*(requirements?|test([ ]+cases?)?).*|.*split.*spec.*|.*spec.*organization.*"
+# '''
+# result = "ok"
+# [[rules.actions]]
+# type = "suggest"
+# message = "Use oaps:spec-writing skill."
+
+# [[rules.actions]]
+# type = "warn"
+# message = "💡 Skill suggested: oaps:spec-writing"
+
+
+# =============================================================================
+# Idea Writing
+# =============================================================================
+
+# [[rules]]
+# id = "idea-writing-prompt"
+# description = "Suggest idea writing skill for brainstorming"
+# events = ["user_prompt_submit"]
+# priority = "high"
+# condition = '''
+# prompt =~ "(?i).*(?<![a-zA-Z])(brainstorm|ideate|concept|hypothesis)(?![a-zA-Z]).*" or prompt =~ "(?i).*(explore|refine|crystallize).*(idea|concept|thinking).*"
+# '''
+# result = "ok"
+# [[rules.actions]]
+# type = "suggest"
+# message = "Use oaps:idea-writing skill."
+
+# [[rules.actions]]
+# type = "warn"
+# message = "💡 Skill suggested: oaps:idea-writing"

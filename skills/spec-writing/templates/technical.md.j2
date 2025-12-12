@@ -1,0 +1,170 @@
+---
+name: technical
+description: API and technical spec with endpoints, data schemas, error handling, and versioning
+---
+# API: {{ title }}
+
+## Overview
+
+Brief description of the API's purpose and functionality.
+
+## Base URL
+
+- Production: `https://api.example.com/v1`
+- Staging: `https://api-staging.example.com/v1`
+
+## Authentication
+
+Describe the authentication method (API key, OAuth 2.0, JWT, etc.).
+
+```
+Authorization: Bearer <token>
+```
+
+## Versioning
+
+URL path versioning: `/v1/resource`
+
+## Endpoints
+
+### [Resource name]
+
+#### GET /resources
+
+List all resources.
+
+**Parameters**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| limit | integer | No | Max results (default: 20, max: 100) |
+| offset | integer | No | Pagination offset |
+
+**Response**
+
+```json
+{
+  "data": [],
+  "meta": {
+    "total": 0,
+    "limit": 20,
+    "offset": 0
+  }
+}
+```
+
+**Errors**
+
+| Code | Description |
+|------|-------------|
+| 401 | Unauthorized |
+| 429 | Rate limit exceeded |
+
+#### GET /resources/{id}
+
+Get a single resource.
+
+**Parameters**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| id | string | Yes | Resource ID |
+
+**Response**
+
+```json
+{
+  "data": {
+    "id": "uuid",
+    "created_at": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+**Errors**
+
+| Code | Description |
+|------|-------------|
+| 401 | Unauthorized |
+| 404 | Resource not found |
+
+#### POST /resources
+
+Create a new resource.
+
+**Request body**
+
+```json
+{
+  "field1": "value",
+  "field2": "value"
+}
+```
+
+**Response**
+
+```json
+{
+  "data": {
+    "id": "uuid",
+    "field1": "value",
+    "field2": "value",
+    "created_at": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+**Errors**
+
+| Code | Description |
+|------|-------------|
+| 400 | Invalid request body |
+| 401 | Unauthorized |
+| 422 | Validation failed |
+
+## Data schemas
+
+### [Schema name]
+
+| Field | Type | Required | Description | Constraints |
+|-------|------|----------|-------------|-------------|
+| id | UUID | Yes | Unique identifier | Read-only |
+| field1 | string | Yes | Description | Max 100 chars |
+| field2 | string | No | Description | - |
+| created_at | datetime | Yes | Creation timestamp | ISO 8601, read-only |
+
+## Error response format
+
+```json
+{
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable message",
+    "details": [],
+    "request_id": "req_abc123"
+  }
+}
+```
+
+### Error codes
+
+| Code | HTTP status | Description |
+|------|-------------|-------------|
+| VALIDATION_ERROR | 400 | Input validation failed |
+| UNAUTHORIZED | 401 | Authentication required |
+| FORBIDDEN | 403 | Insufficient permissions |
+| NOT_FOUND | 404 | Resource not found |
+| RATE_LIMITED | 429 | Too many requests |
+| INTERNAL_ERROR | 500 | Unexpected server error |
+
+## Rate limiting
+
+- **Default limit**: 100 requests per minute
+- **Authenticated**: 1000 requests per minute
+
+### Response headers
+
+- `X-RateLimit-Limit`: Maximum requests per window
+- `X-RateLimit-Remaining`: Requests remaining
+- `X-RateLimit-Reset`: Unix timestamp when limit resets
+- `Retry-After`: Seconds to wait (when rate limited)

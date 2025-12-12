@@ -1,0 +1,1 @@
+"""OAPS idea subsystem domain."""

@@ -1,0 +1,63 @@
+# =============================================================================
+# Python Formatting Hooks
+# =============================================================================
+#
+# Two complementary hooks for Python file handling:
+#
+# 1. block-import-only-writes (pre_tool_use)
+#    - Blocks Write/Edit that only contain imports without code
+#    - Prevents Ruff from removing "unused" imports before code is added
+#
+# 2. python-auto-format (post_tool_use)
+#    - Runs ruff format and ruff check --fix after modifications
+#    - Uses fail-open semantics (silent failures, just log)
+#
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# Block import-only writes
+# -----------------------------------------------------------------------------
+# Prevents the pattern where Claude writes imports first, then Ruff removes
+# them as unused before the actual code is written.
+
+# [[rules]]
+# id = "block-import-only-writes"
+# description = "Block Write/Edit that only contain imports (no code)"
+# events = ["pre_tool_use"]
+# priority = "high"
+# terminal = false
+# condition = '''
+#   (tool_name == "Edit" or tool_name == "Write") and
+#   $matches_glob(tool_input.file_path, "*.py")
+# '''
+# result = "ok"
+
+# # Python action returns {"deny": "message"} to block, None to allow
+# [[rules.actions]]
+# type = "python"
+# entrypoint = "oaps.hooks.formatting:block_import_only_writes"
+# timeout_ms = 5000
+
+
+# -----------------------------------------------------------------------------
+# Auto-format Python files
+# -----------------------------------------------------------------------------
+
+[[rules]]
+id = "python-auto-format"
+description = "Auto-format Python files with ruff after Edit/Write/MultiEdit"
+events = ["post_tool_use"]
+priority = "low"
+terminal = false
+condition = '''
+  (tool_name == "Edit" or tool_name == "Write" or tool_name == "MultiEdit") and
+  $matches_glob(tool_input.file_path, "*.py")
+'''
+result = "ok"
+
+# Run ruff format and ruff check --fix via Python action
+[[rules.actions]]
+type = "python"
+entrypoint = "oaps.hooks.formatting:auto_format_python"
+timeout_ms = 60000

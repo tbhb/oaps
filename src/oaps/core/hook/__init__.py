@@ -1,0 +1,1 @@
+"""OAPS hook subsystem domain."""

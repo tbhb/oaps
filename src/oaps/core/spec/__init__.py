@@ -1,0 +1,1 @@
+"""OAPS spec subsystem domain."""

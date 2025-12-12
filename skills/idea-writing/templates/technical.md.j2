@@ -1,0 +1,152 @@
+---
+name: technical
+description: Technical concept template with architecture sketch, trade-offs, and proof of concept planning
+---
+---
+id: {{ id }}
+title: {{ title }}
+status: seed
+type: technical
+created: {{ created }}
+updated: {{ updated }}
+author: {{ author }}
+tags: {{ tags | default([]) }}
+related_ideas: []
+references: []
+workflow: default
+---
+
+<!-- IDEA HEADER START -->
+# {{ title }}
+
+**ID**: {{ id }} | **Status**: seed | **Type**: technical
+**Created**: {{ created }} | **Updated**: {{ updated }} | **Author**: {{ author }}
+**Tags**: {{ tags | default([]) | join(', ') }}
+<!-- IDEA HEADER END -->
+
+## Core concept
+
+[The essential technical concept in 2-3 sentences]
+
+## Context
+
+[What technical problem does this address? What motivated this approach?]
+
+## Architecture sketch
+
+### High-level design
+
+```
+[ASCII diagram or description of key components]
+```
+
+### Key components
+
+| Component | Responsibility | Technology |
+|-----------|---------------|------------|
+| [Component 1] | [What it does] | [Stack/tools] |
+| [Component 2] | [What it does] | [Stack/tools] |
+| [Component 3] | [What it does] | [Stack/tools] |
+
+### Interfaces
+
+[Key interfaces between components or with external systems]
+
+### Data flow
+
+1. [Data enters system via...]
+2. [Processing step...]
+3. [Output/storage...]
+
+## Trade-offs
+
+### Approach chosen vs alternatives
+
+| Aspect | This approach | Alternative A | Alternative B |
+|--------|--------------|---------------|---------------|
+| [Criterion 1] | [Assessment] | [Assessment] | [Assessment] |
+| [Criterion 2] | [Assessment] | [Assessment] | [Assessment] |
+| [Criterion 3] | [Assessment] | [Assessment] | [Assessment] |
+
+### Accepted limitations
+
+- [Limitation 1]: [Why acceptable]
+- [Limitation 2]: [Why acceptable]
+
+### Risks
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| [Risk 1] | High/Med/Low | High/Med/Low | [Approach] |
+| [Risk 2] | [L] | [I] | [Approach] |
+
+## Proof of concept
+
+### Goals
+
+What would a successful PoC demonstrate?
+
+- [ ] [Validation goal 1]
+- [ ] [Validation goal 2]
+- [ ] [Validation goal 3]
+
+### Scope
+
+**Includes:**
+
+- [PoC scope item 1]
+- [PoC scope item 2]
+
+**Excludes:**
+
+- [Deferred for later]
+- [Out of PoC scope]
+
+### Success criteria
+
+| Criterion | Target | Measurement |
+|-----------|--------|-------------|
+| [Performance] | [Target] | [How measured] |
+| [Correctness] | [Target] | [How verified] |
+| [Feasibility] | [Target] | [How assessed] |
+
+### Estimated effort
+
+[Time/resource estimate for PoC]
+
+## Questions to explore
+
+- [ ] [Technical feasibility question]
+- [ ] [Performance question]
+- [ ] [Integration question]
+- [ ] [Scalability question]
+
+## Prior art
+
+[What similar technical approaches exist? What can be learned from them?]
+
+## Connections
+
+[Related technical ideas, dependent systems, enabling technologies]
+
+## Development notes
+
+### {{ created }} - Initial capture
+
+[Notes from the initial idea capture session]
+
+## Open questions
+
+[Unresolved technical questions]
+
+## Next steps
+
+- [ ] [Research or spike step]
+- [ ] [PoC development step]
+- [ ] [Validation step]
+
+<!-- IDEA FOOTER START -->
+---
+**Related ideas**: None yet
+**References**: None yet
+<!-- IDEA FOOTER END -->
